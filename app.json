@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "CallTuneAI Player",
+    "slug": "calltuneai-player",
+    "version": "1.0.0-beta.1",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "calltuneai",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A2C3E"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.calltuneai.player",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"],
+        "UIRequiresPersistentWiFi": false,
+        "NSMicrophoneUsageDescription": "CallTuneAI needs access to your microphone to record custom predator calls.",
+        "NSPhotoLibraryUsageDescription": "CallTuneAI needs access to your photo library to save recorded calls.",
+        "NSPhotoLibraryAddUsageDescription": "CallTuneAI needs access to your photo library to save recorded calls.",
+        "NSDocumentsFolderUsageDescription": "CallTuneAI needs access to your documents folder to store predator calls."
+      }
+    },
+    "android": {
+      "package": "com.calltuneai.player",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#1A2C3E"
+      },
+      "permissions": [
+        "INTERNET",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO",
+        "ACCESS_MEDIA_LOCATION"
+      ]
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  },
+  "extra": {
+    "eas": {
+      "projectId": "your-project-id"
+    }
+  }
+}
