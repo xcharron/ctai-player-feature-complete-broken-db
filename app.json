@@ -26,7 +26,8 @@
         "NSMicrophoneUsageDescription": "CallTuneAI needs access to your microphone to record custom predator calls.",
         "NSPhotoLibraryUsageDescription": "CallTuneAI needs access to your photo library to save recorded calls.",
         "NSPhotoLibraryAddUsageDescription": "CallTuneAI needs access to your photo library to save recorded calls.",
-        "NSDocumentsFolderUsageDescription": "CallTuneAI needs access to your documents folder to store predator calls."
+        "NSDocumentsFolderUsageDescription": "CallTuneAI needs access to your documents folder to store predator calls.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -54,7 +55,7 @@
   },
   "extra": {
     "eas": {
-      "projectId": "your-project-id"
+      "projectId": "4WS2DF8MLB"
     }
   }
 }
