@@ -3,7 +3,7 @@
     "name": "CallTuneAI Player",
     "slug": "calltuneai-player",
     "version": "1.0.0-beta.1",
-    "orientation": "portrait", 
+    "orientation": "portrait",
     "icon": "./assets/images/logo-square.png",
     "scheme": "calltuneai",
     "userInterfaceStyle": "dark",
@@ -14,9 +14,6 @@
       "backgroundColor": "#1A2C3E",
       "hideExponentExperience": true
     },
-    "assetBundlePatterns": [
-      "assets/**/*"
-    ],
     "assetBundlePatterns": [
       "assets/**/*"
     ],
@@ -36,7 +33,9 @@
       },
       "buildNumber": "2",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "UIRequiresPersistentWiFi": false,
         "NSMicrophoneUsageDescription": "CallTuneAI needs access to your microphone to record custom predator calls.",
         "NSPhotoLibraryUsageDescription": "CallTuneAI needs access to your photo library to save recorded calls.",
@@ -62,12 +61,22 @@
         "ACCESS_MEDIA_LOCATION"
       ]
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router"
+    ],
     "experiments": {
       "typedRoutes": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "e805f7be-9fe5-4f31-9772-c6d5d563bc01"
+      }
     }
   },
   "extra": {
