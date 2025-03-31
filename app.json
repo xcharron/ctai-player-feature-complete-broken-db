@@ -3,24 +3,38 @@
     "name": "CallTuneAI Player",
     "slug": "calltuneai-player",
     "version": "1.0.0-beta.1",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "orientation": "portrait", 
+    "icon": "./assets/images/logo-square.png",
     "scheme": "calltuneai",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/images/splash-logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1A2C3E"
+      "backgroundColor": "#1A2C3E",
+      "hideExponentExperience": true
     },
+    "assetBundlePatterns": [
+      "assets/**/*"
+    ],
     "assetBundlePatterns": [
       "assets/**/*"
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.calltuneai.player",
-      "icon": "./assets/icon.png",
-      "buildNumber": "1",
+      "icon": "./assets/images/logo-square.png",
+      "splash": {
+        "image": "./assets/images/splash-logo.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#1A2C3E",
+        "dark": {
+          "image": "./assets/images/splash-logo.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#1A2C3E"
+        }
+      },
+      "buildNumber": "2",
       "infoPlist": {
         "UIBackgroundModes": ["audio"],
         "UIRequiresPersistentWiFi": false,
@@ -28,14 +42,16 @@
         "NSPhotoLibraryUsageDescription": "CallTuneAI needs access to your photo library to save recorded calls.",
         "NSPhotoLibraryAddUsageDescription": "CallTuneAI needs access to your photo library to save recorded calls.",
         "NSDocumentsFolderUsageDescription": "CallTuneAI needs access to your documents folder to store predator calls.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIRequiresFullScreen": true
       }
     },
     "android": {
       "package": "com.calltuneai.player",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/images/logo-adaptive-fg.png",
+        "backgroundImage": "./assets/images/logo-adaptive-bg.png",
         "backgroundColor": "#1A2C3E"
       },
       "permissions": [
