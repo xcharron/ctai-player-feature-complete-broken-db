@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Session } from '@supabase/supabase-js';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { 
   useFonts, 
   Inter_400Regular, 
@@ -32,22 +31,36 @@ import { Slot } from 'expo-router';
 import { checkAuth } from '../lib/auth';
 
 // Prevent the splash screen from auto-hiding
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* reloading the app might trigger some race conditions, ignore them */
+});
 
 function useProtectedRoute() {
   const segments = useSegments();
   const router = useRouter();
-  const [isMounted, setIsMounted] = useState(false);
+  const [isRouterReady, setIsRouterReady] = useState(false);
+  const [authState, setAuthState] = useState<{
+    isLoading: boolean;
+    isInitialized: boolean;
+  }>({
+    isLoading: true,
+    isInitialized: false
+  });
 
   useEffect(() => {
-    setIsMounted(true);
+    // Wait for next frame to ensure router is ready
+    requestAnimationFrame(() => {
+      setIsRouterReady(true);
+      setAuthState(prev => ({ ...prev, isInitialized: true }));
+    });
   }, []);
 
   useEffect(() => {
-    if (!isMounted) return;
-
-    async function checkAuthentication() {
+    if (!isRouterReady || !authState.isInitialized) return;
+    
+    const checkAuthentication = async () => {
       try {
+        setAuthState(prev => ({ ...prev, isLoading: true }));
         const { isAuthenticated } = await checkAuth();
         const inAuthGroup = segments[0] === 'auth';
 
@@ -56,19 +69,22 @@ function useProtectedRoute() {
         } else if (isAuthenticated && inAuthGroup) {
           router.replace('/(tabs)');
         }
-      } catch (error) {
-        console.error('Auth check failed:', error);
+      } finally {
+        setAuthState(prev => ({ ...prev, isLoading: false }));
       }
-    }
+    };
 
     checkAuthentication();
-  }, [segments, isMounted]);
+  }, [segments, isRouterReady, authState.isInitialized]);
 
-  return !isMounted;
+  return { isLoading: authState.isLoading };
 }
 
 export default function RootLayout() {
   useFrameworkReady();
+  const { isLoading } = useProtectedRoute();
+  const [isAppReady, setIsAppReady] = useState(false);
+  const [initialRender, setInitialRender] = useState(true);
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
@@ -86,17 +102,22 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
+    if ((fontsLoaded || fontError) && !isLoading && initialRender) {
+      setInitialRender(false);
+      requestAnimationFrame(() => {
+        setIsAppReady(true);
+        SplashScreen.hideAsync().catch(() => {
+          // Ignore errors from splash screen
+        });
+      });
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, isLoading, initialRender]);
 
   // Keep splash screen visible while fonts are loading
-  if (!fontsLoaded && !fontError) {
+  if (!isAppReady) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar backgroundColor="#1A2C3E" style="light" translucent={false} />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <StatusBar style="light" translucent={false} />
       </View>
     );
   }
@@ -115,17 +136,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1A2C3E',
+    position: 'relative',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#1A2C3E',
-  },
-  loadingText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-  },
-  contentStyle: {
     backgroundColor: '#1A2C3E',
   }
 });

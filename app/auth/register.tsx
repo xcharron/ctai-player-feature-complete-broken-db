@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Mail, Lock, User, Phone, ChevronRight, CircleAlert as AlertCircle } from 'lucide-react-native';
+import DynamicText from '../../components/DynamicText';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -165,14 +166,13 @@ export default function RegisterScreen() {
       >
         <View style={styles.header}>
           <Image
-            source={require('../../assets/images/logo3.png')}
-            style={styles.logo}
+            source={require('../../assets/images/icon.png')}
+            style={styles.logo} 
             resizeMode="contain"
           />
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>
-            Join CallTuneAI and start your 30-day trial
-          </Text>
+          <DynamicText style={styles.brandTitle}>CallTuneAI</DynamicText>
+          <DynamicText style={styles.title}>Create Account</DynamicText>
+          <DynamicText style={styles.subtitle}>Join us to start your 30-day trial</DynamicText>
         </View>
 
         {error && (
@@ -239,7 +239,7 @@ export default function RegisterScreen() {
               />
             </View>
             <Text style={styles.inputHelper}>
-              Enter your phone number without spaces or dashes (e.g., +12345678900)
+              Format: +12345678900 (no spaces or dashes)
             </Text>
           </View>
 
@@ -296,24 +296,30 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingTop: Platform.OS === 'ios' ? 48 : 32,
     paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
     paddingTop: 10,
   },
   logo: {
-    width: 180,
-    height: 180,
-    marginBottom: 24,
+    width: 140,
+    height: 140,
+    marginBottom: 12,
   },
-  title: {
-    fontSize: 24,
+  brandTitle: {
     fontFamily: 'Orbitron-Bold',
     color: '#FFFFFF',
-    marginBottom: 12,
+    fontSize: 32,
+    marginBottom: 16,
+  },
+  title: {
+    fontFamily: 'Orbitron-Bold',
+    color: '#FFFFFF',
+    fontSize: 28,
+    marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {

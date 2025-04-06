@@ -16,8 +16,6 @@ const BRAND_COLORS = {
   lightGray: '#D3D3D3',
 };
 
-const LOGO_URL = 'https://calltuneai.com/calltuneai-predator-hunting-audio-logo.png';
-
 export default function LibraryScreen() {
   const { sounds, deleteSound } = useSounds();
   const [searchQuery, setSearchQuery] = useState('');
@@ -149,7 +147,7 @@ export default function LibraryScreen() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Image 
-            source={{uri: LOGO_URL}} 
+            source={require('../../assets/images/icon.png')} 
             style={styles.logo}
             resizeMode="contain"
           />

@@ -2,17 +2,15 @@
   "expo": {
     "name": "CallTuneAI Player",
     "slug": "calltuneai-player",
-    "version": "1.0.0-beta.1",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo-square.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "calltuneai",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-logo.png",
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1A2C3E",
-      "hideExponentExperience": true
+      "backgroundColor": "#1A2C3E"
     },
     "assetBundlePatterns": [
       "assets/**/*"
@@ -20,22 +18,19 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.calltuneai.player",
-      "icon": "./assets/images/logo-square.png",
       "splash": {
-        "image": "./assets/images/splash-logo.png",
+        "image": "./assets/images/splash.png",
         "resizeMode": "contain",
         "backgroundColor": "#1A2C3E",
         "dark": {
-          "image": "./assets/images/splash-logo.png",
+          "image": "./assets/images/splash.png",
           "resizeMode": "contain",
           "backgroundColor": "#1A2C3E"
         }
       },
       "buildNumber": "2",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "audio"
-        ],
+        "UIBackgroundModes": ["audio"],
         "UIRequiresPersistentWiFi": false,
         "NSMicrophoneUsageDescription": "CallTuneAI needs access to your microphone to record custom predator calls.",
         "NSPhotoLibraryUsageDescription": "CallTuneAI needs access to your photo library to save recorded calls.",
@@ -49,8 +44,7 @@
       "package": "com.calltuneai.player",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo-adaptive-fg.png",
-        "backgroundImage": "./assets/images/logo-adaptive-bg.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#1A2C3E"
       },
       "permissions": [
@@ -61,27 +55,12 @@
         "ACCESS_MEDIA_LOCATION"
       ]
     },
-    "plugins": [
-      "expo-router"
-    ],
+    "plugins": ["expo-router"],
     "experiments": {
       "typedRoutes": true
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "e805f7be-9fe5-4f31-9772-c6d5d563bc01"
-      }
     }
   },
-  "extra": {
-    "eas": {
-      "projectId": "4WS2DF8MLB"
-    }
+  "eas": {
+    "projectId": "4WS2DF8MLB"
   }
 }

@@ -1,13 +1,16 @@
-# dependencies
+# ───────────────────────────────
+# Dependencies
 node_modules/
 
-# expo
+# ───────────────────────────────
+# Expo build artifacts & folders
 .expo/
 dist/
 web-build/
 expo-env.d.ts
 
-# native
+# ───────────────────────────────
+# iOS & Android native credentials
 *.orig.*
 *.jks
 *.p8
@@ -15,20 +18,26 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# metro
+# ───────────────────────────────
+# Metro cache
 .metro-health-check*
 
-# debug
+# ───────────────────────────────
+# Debug logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macos
+# ───────────────────────────────
+# macOS system files
 .DS_Store
 *.pem
 
-# local env files
+# ───────────────────────────────
+# Environment variables
+.env
 .env*.local
 
-# typescript
+# ───────────────────────────────
+# TypeScript
 *.tsbuildinfo

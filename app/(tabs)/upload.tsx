@@ -18,8 +18,6 @@ const BRAND_COLORS = {
   darkBackground: '#1A1A1A',
 };
 
-const LOGO_URL = 'https://calltuneai.com/calltuneai-predator-hunting-audio-logo.png';
-
 export default function UploadScreen() {
   const router = useRouter();
   const { addSound } = useSounds();
@@ -235,7 +233,7 @@ export default function UploadScreen() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Image 
-            source={{uri: LOGO_URL}} 
+            source={require('../../assets/images/icon.png')} 
             style={styles.logo}
             resizeMode="contain"
           />

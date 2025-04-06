@@ -11,18 +11,20 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { Mail, Lock, ChevronRight, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { Mail, Lock, ChevronRight, CircleAlert as AlertCircle, Loader } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingVerification, setCheckingVerification] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
     try {
       setLoading(true);
+      setCheckingVerification(false);
       setError(null);
 
       if (!email || !password) {
@@ -30,16 +32,65 @@ export default function LoginScreen() {
         return;
       }
 
+      // First check if the user exists and is verified
+      const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers({
+        filters: {
+          email: email.toLowerCase()
+        }
+      });
+
+      if (getUserError) {
+        throw getUserError;
+      }
+
+      const user = users?.[0];
+      
+      if (!user) {
+        setError('No account found with this email. Please sign up first.');
+        return;
+      }
+
+      // Attempt to sign in
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) throw signInError;
+      if (signInError) {
+        if (signInError.message.includes('Invalid login credentials')) {
+          setError('Incorrect password. Please try again.');
+        } else if (signInError.message.includes('Email not confirmed')) {
+          setCheckingVerification(true);
+          setError('Please check your email to verify your account before signing in.');
+        } else {
+          throw signInError;
+        }
+        return;
+      }
 
       router.replace('/(tabs)');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      });
+
+      if (error) throw error;
+
+      setError('Verification email resent. Please check your inbox.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend verification email');
     } finally {
       setLoading(false);
     }
@@ -53,7 +104,7 @@ export default function LoginScreen() {
       <View style={styles.content}>
         <View style={styles.header}>
           <Image
-            source={require('../../assets/images/logo3.png')}
+            source={require('../../assets/images/icon.png')}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -105,11 +156,32 @@ export default function LoginScreen() {
             onPress={handleLogin}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>
-              {loading ? 'Signing In...' : 'Sign In'}
-            </Text>
-            <ChevronRight size={20} color="#FFFFFF" />
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <Loader size={24} color="#FFFFFF" />
+                <Text style={styles.buttonText}>
+                  {checkingVerification ? 'Checking Verification...' : 'Signing In...'}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.buttonText}>Sign In</Text>
+                <ChevronRight size={20} color="#FFFFFF" />
+              </>
+            )}
           </TouchableOpacity>
+
+          {checkingVerification && (
+            <TouchableOpacity
+              style={styles.resendButton}
+              onPress={handleResendVerification}
+              disabled={loading}
+            >
+              <Text style={styles.resendButtonText}>
+                Resend Verification Email
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.linkButton}
@@ -140,8 +212,8 @@ const styles = StyleSheet.create({
     marginBottom: 48,
   },
   logo: {
-    width: 160,
-    height: 160,
+    width: 120,
+    height: 120,
     marginBottom: 32,
   },
   title: {
@@ -208,8 +280,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    marginRight: 8,
+    fontFamily: 'Inter-SemiBold'
   },
   linkButton: {
     alignItems: 'center',
@@ -219,5 +290,21 @@ const styles = StyleSheet.create({
     color: '#0496FF',
     fontSize: 16,
     fontFamily: 'Inter-Medium',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8
+  },
+  resendButton: {
+    marginTop: 16,
+    paddingVertical: 8,
+  },
+  resendButtonText: {
+    color: '#0496FF',
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    textDecorationLine: 'underline'
   },
 });

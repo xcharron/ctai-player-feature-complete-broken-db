@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Linking, P
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ExternalLink, Mail, Twitter, Instagram, Youtube, Facebook, Play } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
-import DynamicText from '../../components/DynamicText';
+import DynamicText from '../../components/DynamicText'; 
 
 const BRAND_COLORS = {
   deepBlue: '#2C3E50',
@@ -31,7 +31,7 @@ export default function AboutScreen() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Image 
-            source={require('../../assets/images/calltuneai-logo-darker-blue.png')} 
+            source={require('../../assets/images/icon.png')} 
             style={styles.logo}
             resizeMode="contain"
           />
