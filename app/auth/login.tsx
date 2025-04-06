@@ -20,6 +20,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [checkingVerification, setCheckingVerification] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
 
   const handleLogin = async () => {
     try {
@@ -96,6 +97,31 @@ export default function LoginScreen() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!email) {
+        setError('Please enter your email address');
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://calltuneai.com/auth/reset-password',
+      });
+
+      if (error) throw error;
+
+      setResetSent(true);
+      setError('Password reset email sent. Please check your inbox.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -150,6 +176,16 @@ export default function LoginScreen() {
               />
             </View>
           </View>
+
+          <TouchableOpacity
+            style={styles.forgotPasswordButton}
+            onPress={handleForgotPassword}
+            disabled={loading || !email}
+          >
+            <Text style={styles.forgotPasswordText}>
+              Forgot Password?
+            </Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
@@ -307,4 +343,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     textDecorationLine: 'underline'
   },
+  forgotPasswordButton: {
+    alignItems: 'flex-end',
+    marginTop: -8,
+    marginBottom: 8,
+  },
+  forgotPasswordText: {
+    color: '#0496FF',
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+  }
 });

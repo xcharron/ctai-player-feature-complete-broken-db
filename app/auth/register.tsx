@@ -9,10 +9,11 @@ import {
   Platform,
   Image,
   KeyboardAvoidingView,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { Mail, Lock, User, Phone, ChevronRight, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { Mail, Lock, User, Phone, ChevronRight, CircleAlert as AlertCircle, CircleCheck as CheckCircle2 } from 'lucide-react-native';
 import DynamicText from '../../components/DynamicText';
 
 export default function RegisterScreen() {
@@ -25,11 +26,12 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [showPasswordHints, setShowPasswordHints] = useState(false);
   const [registrationStep, setRegistrationStep] = useState<'validating' | 'creating' | 'complete'>('validating');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [rateLimitTimeout, setRateLimitTimeout] = useState<number | null>(null);
-  const [rateLimitRemaining, setRateLimitRemaining] = useState(5); // Default limit per hour
+  const [rateLimitRemaining, setRateLimitRemaining] = useState(5);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const validatePhone = (phone: string) => {
     const phoneRegex = /^\+[1-9]\d{1,14}$/;
@@ -39,13 +41,23 @@ export default function RegisterScreen() {
   const validateEmail = (email: string) => {
     const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
     const disposableEmailRegex = /@(tempmail\.com|throwawaymail\.com|mailinator\.com|guerrillamail\.com|sharklasers\.com|grr\.la|guerrillamail\.net|spam4\.me|byom\.de|dispostable\.com|yopmail\.com|10minutemail\.com)$/i;
-    
     return emailRegex.test(email) && !disposableEmailRegex.test(email);
+  };
+
+  const validatePassword = (password: string) => {
+    return password.length >= 6;
+  };
+
+  const handleOpenEmail = () => {
+    if (Platform.OS === 'web') {
+      window.open('https://outlook.office.com', '_blank');
+    } else {
+      Linking.openURL('message://');
+    }
   };
 
   const handleRegister = async () => {
     try {
-      // Skip rate limit check in development
       if (!isDevelopment) {
         if (rateLimitTimeout && Date.now() < rateLimitTimeout) {
           const waitMinutes = Math.ceil((rateLimitTimeout - Date.now()) / 60000);
@@ -61,35 +73,35 @@ export default function RegisterScreen() {
       }
 
       setLoading(true);
-      console.log('Starting registration process...');
       setRegistrationStep('validating');
       setError(null);
 
-      // Validate required inputs
       if (!firstName || !lastName || !email || !password || !phone) {
         setError('Please fill in all required fields');
         setLoading(false);
         return;
       }
       
-      // Validate phone format
       if (!validatePhone(phone)) {
-        setError('Please enter a valid phone number (e.g., +12345678900)');
+        setError('Please enter a valid phone number (+1XXXXXXXXXX)');
         setLoading(false);
         return;
       }
 
-      // Validate email format and check for disposable email services
       if (!validateEmail(email)) {
         setError('Please enter a valid email address. Disposable email services are not allowed.');
         setLoading(false);
         return;
       }
 
+      if (!validatePassword(password)) {
+        setError('Password must be at least 6 characters long');
+        setLoading(false);
+        return;
+      }
+
       setRegistrationStep('creating');
-      console.log('Creating user account...');
       
-      // Register user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -98,21 +110,31 @@ export default function RegisterScreen() {
             first_name: firstName,
             last_name: lastName,
             phone: phone
-          }
+          },
+          emailRedirectTo: 'https://calltuneai.com/auth/verify'
         }
       });
 
       if (authError) {
-        console.error('Auth error:', authError);
-        throw authError;
+        if (authError.message.includes('sending confirmation email')) {
+          setError('Unable to send verification email. Please try again later or contact support.');
+        } else if (authError.message.includes('User already registered')) {
+          setError('This email is already registered. Please sign in instead.');
+        } else if (authError.message.includes('Password should be')) {
+          setError('Password must be at least 6 characters long');
+        } else {
+          throw authError;
+        }
+        return;
       }
 
       if (authData.user) {
-        console.log('User created successfully:', authData.user.id);
         setRegistrationStep('complete');
         setIsSubmitted(true);
-        // Show confirmation message
-        setError('Please check your email to verify your account before signing in.');
+        setShowSuccessMessage(true);
+        setError(null);
+        
+        // Auto-redirect after 3 seconds
         setTimeout(() => {
           router.replace('/auth/login');
         }, 3000);
@@ -121,23 +143,19 @@ export default function RegisterScreen() {
       console.error('Registration error:', err);
       let errorMessage = 'An error occurred during registration';
       
-      // Handle specific error cases
       if (err.message?.includes('User already registered')) {
         errorMessage = 'This email is already registered. Please sign in instead.';
       } else if (err.message?.includes('Password should be at least 6 characters')) {
         errorMessage = 'Password must be at least 6 characters long';
       } else if (err.message?.includes('hour.error.email.rate')) {
         if (!isDevelopment) {
-          // Set a 30-minute timeout for rate limit in production
           const timeout = Date.now() + 30 * 60 * 1000;
           setRateLimitTimeout(timeout);
           const waitMinutes = Math.ceil((timeout - Date.now()) / 60000);
           errorMessage = `Rate limit reached. Please wait ${waitMinutes} minutes before trying again, or sign in with an existing account.`;
-          // Clear form to prevent repeated submissions
           setEmail('');
           setPassword('');
         } else {
-          // In development, show a more helpful message
           setRateLimitRemaining(prev => Math.max(0, prev - 1));
           errorMessage = `Rate limit hit (${rateLimitRemaining} attempts remaining). In development mode, you can:\n\n` +
             '• Use different email addresses\n' +
@@ -148,7 +166,6 @@ export default function RegisterScreen() {
         errorMessage = err.message;
       }
       
-      console.error('Registration error details:', err);
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -182,6 +199,25 @@ export default function RegisterScreen() {
           </View>
         )}
 
+        {showSuccessMessage && (
+          <View style={styles.successContainer}>
+            <CheckCircle2 size={24} color="#4CD964" />
+            <View style={styles.successTextContainer}>
+              <Text style={styles.successTitle}>Account Created Successfully!</Text>
+              <Text style={styles.successText}>
+                Please check your email to verify your account.
+              </Text>
+              <TouchableOpacity
+                style={styles.checkEmailButton}
+                onPress={handleOpenEmail}
+              >
+                <Mail size={20} color="#FFFFFF" />
+                <Text style={styles.checkEmailText}>Open Email App</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         <View style={styles.form}>
           <View style={styles.inputGroup}>
             <View style={styles.inputRow}>
@@ -194,6 +230,7 @@ export default function RegisterScreen() {
                   value={firstName}
                   onChangeText={setFirstName}
                   autoCapitalize="words"
+                  editable={!showSuccessMessage}
                 />
               </View>
               <View style={[styles.inputContainer, { flex: 1 }]}>
@@ -205,6 +242,7 @@ export default function RegisterScreen() {
                   value={lastName}
                   onChangeText={setLastName}
                   autoCapitalize="words"
+                  editable={!showSuccessMessage}
                 />
               </View>
             </View>
@@ -221,6 +259,7 @@ export default function RegisterScreen() {
                 onChangeText={setEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
+                editable={!showSuccessMessage}
               />
             </View>
           </View>
@@ -236,11 +275,10 @@ export default function RegisterScreen() {
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
                 autoComplete="tel"
+                editable={!showSuccessMessage}
               />
             </View>
-            <Text style={styles.inputHelper}>
-              Format: +12345678900 (no spaces or dashes)
-            </Text>
+            <Text style={styles.inputHelper}>Format: +1XXXXXXXXXX</Text>
           </View>
 
           <View style={styles.inputGroup}>
@@ -251,27 +289,46 @@ export default function RegisterScreen() {
                 placeholder="Password"
                 placeholderTextColor="#AAAAAA"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  setShowPasswordHints(true);
+                }}
                 secureTextEntry
+                onFocus={() => setShowPasswordHints(true)}
+                onBlur={() => setShowPasswordHints(false)}
+                editable={!showSuccessMessage}
               />
             </View>
+            {showPasswordHints && (
+              <View style={styles.passwordHints}>
+                <Text style={[
+                  styles.passwordHint,
+                  password.length >= 6 ? styles.passwordHintValid : styles.passwordHintInvalid
+                ]}>
+                  • At least 6 characters
+                </Text>
+              </View>
+            )}
           </View>
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[
+              styles.button,
+              (loading || showSuccessMessage) && styles.buttonDisabled
+            ]}
             onPress={handleRegister}
-            disabled={loading || isSubmitted}
+            disabled={loading || isSubmitted || showSuccessMessage}
           >
             <Text style={styles.buttonText}>
               {loading ? (
                 registrationStep === 'validating' ? 'Validating...' :
                 registrationStep === 'creating' ? 'Creating Account...' :
                 'Account Created!'
-              ) : isSubmitted ? (
+              ) : showSuccessMessage ? (
                 'Check Email to Verify'
               ) : 'Create Account'}
             </Text>
-            {!loading && !isSubmitted && <ChevronRight size={20} color="#FFFFFF" />}
+            {!loading && !showSuccessMessage && <ChevronRight size={20} color="#FFFFFF" />}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -305,25 +362,25 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   logo: {
-    width: 140,
-    height: 140,
+    width: 80, // Reduced from 100
+    height: 80, // Reduced from 100
     marginBottom: 12,
   },
   brandTitle: {
     fontFamily: 'Orbitron-Bold',
     color: '#FFFFFF',
-    fontSize: 32,
-    marginBottom: 16,
+    fontSize: 24, // Reduced from 28
+    marginBottom: 8, // Reduced from 12
   },
   title: {
     fontFamily: 'Orbitron-Bold',
     color: '#FFFFFF',
-    fontSize: 28,
+    fontSize: 20, // Reduced from 24
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#AAAAAA',
     textAlign: 'center',
@@ -342,6 +399,45 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     fontFamily: 'Inter-Medium',
     fontSize: 14,
+  },
+  successContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(76, 217, 100, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  successTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  successTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#4CD964',
+    marginBottom: 4,
+  },
+  successText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  checkEmailButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CD964',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+  },
+  checkEmailText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    marginLeft: 8,
   },
   form: {
     width: '100%',
@@ -400,6 +496,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     marginTop: 4,
-    paddingHorizontal: 16
+    paddingHorizontal: 4
+  },
+  passwordHints: {
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  passwordHint: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    marginBottom: 4,
+  },
+  passwordHintValid: {
+    color: '#4CD964',
+  },
+  passwordHintInvalid: {
+    color: '#FF3B30',
   },
 });
