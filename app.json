@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "calltuneai",
+    "scheme": ["calltuneai", "exp+calltuneai-player"],
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/images/splash.png",
@@ -18,6 +18,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.calltuneai.player",
+      "associatedDomains": [
+        "applinks:calltuneai.com"
+      ],
       "splash": {
         "image": "./assets/images/splash.png",
         "resizeMode": "contain",
@@ -43,6 +46,20 @@
     "android": {
       "package": "com.calltuneai.player",
       "versionCode": 1,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "calltuneai.com",
+              "pathPrefix": "/auth"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#1A2C3E"
@@ -58,9 +75,7 @@
     "plugins": ["expo-router"],
     "experiments": {
       "typedRoutes": true
-    }
-  },
-  "eas": {
-    "projectId": "4WS2DF8MLB"
+    },
+    "scheme": "calltuneai"
   }
 }

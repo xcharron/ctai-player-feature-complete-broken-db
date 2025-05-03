@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Image,
   KeyboardAvoidingView,
   Linking,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -32,6 +34,12 @@ export default function RegisterScreen() {
   const [rateLimitTimeout, setRateLimitTimeout] = useState<number | null>(null);
   const [rateLimitRemaining, setRateLimitRemaining] = useState(5);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const validatePhone = (phone: string) => {
     const phoneRegex = /^\+[1-9]\d{1,14}$/;
@@ -48,7 +56,12 @@ export default function RegisterScreen() {
     return password.length >= 6;
   };
 
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
   const handleOpenEmail = () => {
+    dismissKeyboard();
     if (Platform.OS === 'web') {
       window.open('https://outlook.office.com', '_blank');
     } else {
@@ -56,7 +69,14 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleSignInPress = () => {
+    dismissKeyboard();
+    router.push('/auth/login');
+  };
+
   const handleRegister = async () => {
+    if (!mounted) return;
+    
     try {
       if (!isDevelopment) {
         if (rateLimitTimeout && Date.now() < rateLimitTimeout) {
@@ -111,7 +131,12 @@ export default function RegisterScreen() {
             last_name: lastName,
             phone: phone
           },
-          emailRedirectTo: 'https://calltuneai.com/auth/verify'
+          emailRedirectTo: Platform.select({
+            web: 'https://calltuneai.com/auth/verify',
+            ios: 'calltuneai://auth/verify',
+            android: 'calltuneai://auth/verify',
+            default: 'https://calltuneai.com/auth/verify'
+          })
         }
       });
 
@@ -134,9 +159,10 @@ export default function RegisterScreen() {
         setShowSuccessMessage(true);
         setError(null);
         
-        // Auto-redirect after 3 seconds
         setTimeout(() => {
-          router.replace('/auth/login');
+          if (mounted) {
+            router.replace('/auth/login');
+          }
         }, 3000);
       }
     } catch (err: any) {
@@ -168,180 +194,194 @@ export default function RegisterScreen() {
       
       setError(errorMessage);
     } finally {
-      setLoading(false);
+      if (mounted) {
+        setLoading(false);
+      }
     }
   };
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <TouchableWithoutFeedback onPress={dismissKeyboard}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? -64 : 0}
+        style={styles.container}
       >
-        <View style={styles.header}>
-          <Image
-            source={require('../../assets/images/icon.png')}
-            style={styles.logo} 
-            resizeMode="contain"
-          />
-          <DynamicText style={styles.brandTitle}>CallTuneAI</DynamicText>
-          <DynamicText style={styles.title}>Create Account</DynamicText>
-          <DynamicText style={styles.subtitle}>Join us to start your 30-day trial</DynamicText>
-        </View>
-
-        {error && (
-          <View style={styles.errorContainer}>
-            <AlertCircle size={20} color="#FF3B30" />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
-
-        {showSuccessMessage && (
-          <View style={styles.successContainer}>
-            <CheckCircle2 size={24} color="#4CD964" />
-            <View style={styles.successTextContainer}>
-              <Text style={styles.successTitle}>Account Created Successfully!</Text>
-              <Text style={styles.successText}>
-                Please check your email to verify your account.
-              </Text>
-              <TouchableOpacity
-                style={styles.checkEmailButton}
-                onPress={handleOpenEmail}
-              >
-                <Mail size={20} color="#FFFFFF" />
-                <Text style={styles.checkEmailText}>Open Email App</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <View style={styles.inputRow}>
-              <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
-                <User size={20} color="#AAAAAA" />
-                <TextInput
-                  style={styles.input}
-                  placeholder="First Name"
-                  placeholderTextColor="#AAAAAA"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  autoCapitalize="words"
-                  editable={!showSuccessMessage}
-                />
-              </View>
-              <View style={[styles.inputContainer, { flex: 1 }]}>
-                <User size={20} color="#AAAAAA" />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Last Name"
-                  placeholderTextColor="#AAAAAA"
-                  value={lastName}
-                  onChangeText={setLastName}
-                  autoCapitalize="words"
-                  editable={!showSuccessMessage}
-                />
-              </View>
-            </View>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          contentInsetAdjustmentBehavior="automatic"
+        >
+          <View style={styles.header}>
+            <Image
+              source={require('../../assets/images/icon.png')}
+              style={styles.logo} 
+              resizeMode="contain"
+            />
+            <DynamicText style={styles.brandTitle}>CallTuneAI</DynamicText>
+            <DynamicText style={styles.brandSubtitle}>Player</DynamicText>
+            <DynamicText style={styles.title}>Create Account</DynamicText>
+            <DynamicText style={styles.subtitle}>Join us to start your 30-day trial</DynamicText>
           </View>
 
-          <View style={styles.inputGroup}>
-            <View style={styles.inputContainer}>
-              <Mail size={20} color="#AAAAAA" />
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="#AAAAAA"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                editable={!showSuccessMessage}
-              />
+          {error && (
+            <View style={styles.errorContainer}>
+              <AlertCircle size={20} color="#FF3B30" />
+              <Text style={styles.errorText}>{error}</Text>
             </View>
-          </View>
+          )}
 
-          <View style={styles.inputGroup}>
-            <View style={styles.inputContainer}>
-              <Phone size={20} color="#AAAAAA" />
-              <TextInput
-                placeholder="Phone Number"
-                style={styles.input}
-                placeholderTextColor="#AAAAAA"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-                editable={!showSuccessMessage}
-              />
-            </View>
-            <Text style={styles.inputHelper}>Format: +1XXXXXXXXXX</Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <View style={styles.inputContainer}>
-              <Lock size={20} color="#AAAAAA" />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="#AAAAAA"
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  setShowPasswordHints(true);
-                }}
-                secureTextEntry
-                onFocus={() => setShowPasswordHints(true)}
-                onBlur={() => setShowPasswordHints(false)}
-                editable={!showSuccessMessage}
-              />
-            </View>
-            {showPasswordHints && (
-              <View style={styles.passwordHints}>
-                <Text style={[
-                  styles.passwordHint,
-                  password.length >= 6 ? styles.passwordHintValid : styles.passwordHintInvalid
-                ]}>
-                  • At least 6 characters
+          {showSuccessMessage && (
+            <View style={styles.successContainer}>
+              <CheckCircle2 size={24} color="#4CD964" />
+              <View style={styles.successTextContainer}>
+                <Text style={styles.successTitle}>Account Created Successfully!</Text>
+                <Text style={styles.successText}>
+                  Please check your email to verify your account.
                 </Text>
+                <TouchableOpacity
+                  style={styles.checkEmailButton}
+                  onPress={handleOpenEmail}
+                >
+                  <Mail size={20} color="#FFFFFF" />
+                  <Text style={styles.checkEmailText}>Open Email App</Text>
+                </TouchableOpacity>
               </View>
-            )}
+            </View>
+          )}
+
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <View style={styles.inputRow}>
+                <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
+                  <User size={20} color="#AAAAAA" />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="First Name"
+                    placeholderTextColor="#AAAAAA"
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    autoCapitalize="words"
+                    editable={!showSuccessMessage}
+                  />
+                </View>
+                <View style={[styles.inputContainer, { flex: 1 }]}>
+                  <User size={20} color="#AAAAAA" />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Last Name"
+                    placeholderTextColor="#AAAAAA"
+                    value={lastName}
+                    onChangeText={setLastName}
+                    autoCapitalize="words"
+                    editable={!showSuccessMessage}
+                  />
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.inputContainer}>
+                <Mail size={20} color="#AAAAAA" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor="#AAAAAA"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  editable={!showSuccessMessage}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.inputContainer}>
+                <Phone size={20} color="#AAAAAA" />
+                <TextInput
+                  placeholder="Phone Number"
+                  style={styles.input}
+                  placeholderTextColor="#AAAAAA"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                  editable={!showSuccessMessage}
+                />
+              </View>
+              <Text style={styles.inputHelper}>Format: +1XXXXXXXXXX</Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.inputContainer}>
+                <Lock size={20} color="#AAAAAA" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#AAAAAA"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    setShowPasswordHints(true);
+                  }}
+                  secureTextEntry
+                  onFocus={() => setShowPasswordHints(true)}
+                  onBlur={() => setShowPasswordHints(false)}
+                  editable={!showSuccessMessage}
+                />
+              </View>
+              {showPasswordHints && (
+                <View style={styles.passwordHints}>
+                  <Text style={[
+                    styles.passwordHint,
+                    password.length >= 6 ? styles.passwordHintValid : styles.passwordHintInvalid
+                  ]}>
+                    • At least 6 characters
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.button,
+                (loading || showSuccessMessage) && styles.buttonDisabled
+              ]}
+              onPress={handleRegister}
+              disabled={loading || isSubmitted || showSuccessMessage}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? (
+                  registrationStep === 'validating' ? 'Validating...' :
+                  registrationStep === 'creating' ? 'Creating Account...' :
+                  'Account Created!'
+                ) : showSuccessMessage ? (
+                  'Check Email to Verify'
+                ) : 'Create Account'}
+              </Text>
+              {!loading && !showSuccessMessage && <ChevronRight size={20} color="#FFFFFF" />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={handleSignInPress}
+            >
+              <Text style={styles.linkText}>
+                Already have an account? Sign in
+              </Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={[
-              styles.button,
-              (loading || showSuccessMessage) && styles.buttonDisabled
-            ]}
-            onPress={handleRegister}
-            disabled={loading || isSubmitted || showSuccessMessage}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? (
-                registrationStep === 'validating' ? 'Validating...' :
-                registrationStep === 'creating' ? 'Creating Account...' :
-                'Account Created!'
-              ) : showSuccessMessage ? (
-                'Check Email to Verify'
-              ) : 'Create Account'}
-            </Text>
-            {!loading && !showSuccessMessage && <ChevronRight size={20} color="#FFFFFF" />}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => router.push('/auth/login')}
-          >
-            <Text style={styles.linkText}>
-              Already have an account? Sign in
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -351,31 +391,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A2C3E',
   },
   scrollContent: {
-    flexGrow: 1,
+    minHeight: '100%',
     paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 48 : 32,
-    paddingBottom: 40,
+    paddingTop: Platform.select({ ios: 10, android: 10, default: 10 }),
+    paddingBottom: 20,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
-    paddingTop: 10,
+    marginBottom: 24,
   },
   logo: {
-    width: 80, // Reduced from 100
-    height: 80, // Reduced from 100
-    marginBottom: 12,
+    width: 160,
+    height: 160,
+    marginBottom: 0,
   },
   brandTitle: {
     fontFamily: 'Orbitron-Bold',
     color: '#FFFFFF',
-    fontSize: 24, // Reduced from 28
-    marginBottom: 8, // Reduced from 12
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  brandSubtitle: {
+    fontFamily: 'Orbitron-Bold',
+    color: '#0496FF',
+    fontSize: 16,
+    marginBottom: 24,
   },
   title: {
     fontFamily: 'Orbitron-Bold',
     color: '#FFFFFF',
-    fontSize: 20, // Reduced from 24
+    fontSize: 24,
     marginBottom: 8,
     textAlign: 'center',
   },

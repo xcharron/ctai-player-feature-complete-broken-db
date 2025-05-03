@@ -16,9 +16,25 @@ export default function AuthLayout() {
 
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="register" />
-        <Stack.Screen name="login" />
+      <Stack 
+        screenOptions={{ 
+          headerShown: false,
+          animation: 'fade',
+          presentation: 'card'
+        }}
+      >
+        <Stack.Screen 
+          name="register" 
+          options={{
+            animationTypeForReplace: 'push'
+          }}
+        />
+        <Stack.Screen 
+          name="login"
+          options={{
+            animationTypeForReplace: 'pop'
+          }}
+        />
       </Stack>
       <StatusBar style="light" />
     </>
