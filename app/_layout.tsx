@@ -1,90 +1,42 @@
-import React, { useEffect, useState } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useFonts } from 'expo-font';
+import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
+import { SoundProvider } from '../context/SoundContext';
+import { checkAuth } from '../lib/auth';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, StyleSheet } from 'react-native';
-import { 
-  useFonts, 
-  Inter_400Regular, 
-  Inter_500Medium, 
-  Inter_600SemiBold, 
-  Inter_700Bold 
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
 } from '@expo-google-fonts/inter';
-import { 
+import {
   Orbitron_400Regular,
   Orbitron_500Medium,
   Orbitron_600SemiBold,
-  Orbitron_700Bold
+  Orbitron_700Bold,
 } from '@expo-google-fonts/orbitron';
 import {
   Roboto_400Regular,
   Roboto_500Medium,
-  Roboto_700Bold
+  Roboto_700Bold,
 } from '@expo-google-fonts/roboto';
 import {
   RobotoSlab_400Regular,
-  RobotoSlab_700Bold
+  RobotoSlab_700Bold,
 } from '@expo-google-fonts/roboto-slab';
-import { useFrameworkReady } from '@/hooks/useFrameworkReady';
-import { SoundProvider } from '../context/SoundContext';
-import * as SplashScreen from 'expo-splash-screen';
-import { Slot } from 'expo-router';
-import { checkAuth } from '../lib/auth';
 
-// Prevent the splash screen from auto-hiding
-SplashScreen.preventAutoHideAsync().catch(() => {
-  /* reloading the app might trigger some race conditions, ignore them */
-});
-
-function useProtectedRoute() {
-  const segments = useSegments();
-  const router = useRouter();
-  const [isRouterReady, setIsRouterReady] = useState(false);
-  const [authState, setAuthState] = useState<{
-    isLoading: boolean;
-    isInitialized: boolean;
-  }>({
-    isLoading: true,
-    isInitialized: false
-  });
-
-  useEffect(() => {
-    // Wait for next frame to ensure router is ready
-    requestAnimationFrame(() => {
-      setIsRouterReady(true);
-      setAuthState(prev => ({ ...prev, isInitialized: true }));
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!isRouterReady || !authState.isInitialized) return;
-    
-    const checkAuthentication = async () => {
-      try {
-        setAuthState(prev => ({ ...prev, isLoading: true }));
-        const { isAuthenticated } = await checkAuth();
-        const inAuthGroup = segments[0] === 'auth';
-
-        if (!isAuthenticated && !inAuthGroup) {
-          router.replace('/auth/register');
-        } else if (isAuthenticated && inAuthGroup) {
-          router.replace('/(tabs)');
-        }
-      } finally {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-      }
-    };
-
-    checkAuthentication();
-  }, [segments, isRouterReady, authState.isInitialized]);
-
-  return { isLoading: authState.isLoading };
-}
+// Keep the splash screen visible while we load resources
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  useFrameworkReady();
-  const { isLoading } = useProtectedRoute();
-  const [isAppReady, setIsAppReady] = useState(false);
-  const [initialRender, setInitialRender] = useState(true);
+  const [appIsReady, setAppIsReady] = useState(false);
+  const [initialAuthCheckDone, setInitialAuthCheckDone] = useState(false);
+  const router = useRouter();
+  const segments = useSegments();
+
+  // Load all fonts
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
@@ -101,34 +53,58 @@ export default function RootLayout() {
     'RobotoSlab-Bold': RobotoSlab_700Bold,
   });
 
-  useEffect(() => {
-    if ((fontsLoaded || fontError) && !isLoading && initialRender) {
-      setInitialRender(false);
-      requestAnimationFrame(() => {
-        setIsAppReady(true);
-        SplashScreen.hideAsync().catch(() => {
-          // Ignore errors from splash screen
-        });
-      });
-    }
-  }, [fontsLoaded, fontError, isLoading, initialRender]);
+  const handleAuthRouting = useCallback(async () => {
+    try {
+      const { isAuthenticated } = await checkAuth();
+      const currentRoute = segments[0];
+      
+      console.log('Auth status:', isAuthenticated, 'Current route:', currentRoute);
 
-  // Keep splash screen visible while fonts are loading
-  if (!isAppReady) {
-    return (
-      <View style={styles.loadingContainer}>
-        <StatusBar style="light" translucent={false} />
-      </View>
-    );
+      // Only redirect if necessary to prevent loops
+      if (!isAuthenticated && currentRoute !== 'auth') {
+        console.log('Redirecting to register');
+        router.replace('/auth/register');
+      } else if (isAuthenticated && currentRoute === 'auth') {
+        console.log('Redirecting to tabs');
+        router.replace('/(tabs)');
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      // Fallback to register screen if auth check fails
+      router.replace('/auth/register');
+    } finally {
+      setInitialAuthCheckDone(true);
+    }
+  }, [segments, router]);
+
+  useEffect(() => {
+    if ((fontsLoaded || fontError) && !initialAuthCheckDone) {
+      handleAuthRouting();
+    }
+  }, [fontsLoaded, fontError, initialAuthCheckDone, handleAuthRouting]);
+
+  useEffect(() => {
+    if (initialAuthCheckDone && (fontsLoaded || fontError)) {
+      // Small delay to ensure navigation is complete
+      const timer = setTimeout(() => {
+        setAppIsReady(true);
+        SplashScreen.hideAsync().catch(console.warn);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [initialAuthCheckDone, fontsLoaded, fontError]);
+
+  if (!appIsReady) {
+    return <View style={styles.container} />;
   }
 
   return (
-    <View style={styles.container}>
-      <SoundProvider>
-        <Slot />
-      </SoundProvider>
-      <StatusBar backgroundColor="#1A2C3E" style="light" translucent={false} />
-    </View>
+    <SoundProvider>
+      <View style={styles.container}>
+        <Stack screenOptions={{ headerShown: false }} />
+        <StatusBar style="light" />
+      </View>
+    </SoundProvider>
   );
 }
 
@@ -136,10 +112,5 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1A2C3E',
-    position: 'relative',
   },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#1A2C3E',
-  }
 });

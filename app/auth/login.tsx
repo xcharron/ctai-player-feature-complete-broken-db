@@ -53,6 +53,7 @@ export default function LoginScreen() {
         }
       });
 
+      console.log('users', users);
       if (getUserError) {
         throw getUserError;
       }
