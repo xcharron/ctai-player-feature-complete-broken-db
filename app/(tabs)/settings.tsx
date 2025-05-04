@@ -68,7 +68,6 @@ export default function SettingsScreen() {
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
-      await supabase.auth.clearSession();
       router.replace('/auth/login');
     } catch (error) {
       console.error('Error signing out:', error);
