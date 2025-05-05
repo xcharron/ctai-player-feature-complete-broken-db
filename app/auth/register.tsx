@@ -15,8 +15,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { Mail, Lock, User, Phone, ChevronRight, CircleAlert as AlertCircle, CircleCheck as CheckCircle2 } from 'lucide-react-native';
+import { Mail, Lock, User, ChevronRight, CircleAlert as AlertCircle, CircleCheck as CheckCircle2 } from 'lucide-react-native';
 import DynamicText from '../../components/DynamicText';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -34,6 +35,8 @@ export default function RegisterScreen() {
   const [rateLimitRemaining, setRateLimitRemaining] = useState(5);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
 
   useEffect(() => {
     setMounted(true);
@@ -59,6 +62,7 @@ export default function RegisterScreen() {
     Keyboard.dismiss();
   };
 
+  
   const handleOpenEmail = () => {
     dismissKeyboard();
     if (Platform.OS === 'web') {
@@ -75,7 +79,7 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!mounted) return;
-    
+
     try {
       if (!isDevelopment) {
         if (rateLimitTimeout && Date.now() < rateLimitTimeout) {
@@ -114,7 +118,7 @@ export default function RegisterScreen() {
       }
 
       setRegistrationStep('creating');
-      
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -150,7 +154,7 @@ export default function RegisterScreen() {
         setIsSubmitted(true);
         setShowSuccessMessage(true);
         setError(null);
-        
+
         setTimeout(() => {
           if (mounted) {
             router.replace('/auth/login');
@@ -160,7 +164,7 @@ export default function RegisterScreen() {
     } catch (err: any) {
       console.error('Registration error:', err);
       let errorMessage = 'An error occurred during registration';
-      
+
       if (err.message?.includes('User already registered')) {
         errorMessage = 'This email is already registered. Please sign in instead.';
       } else if (err.message?.includes('Password should be at least 6 characters')) {
@@ -183,7 +187,7 @@ export default function RegisterScreen() {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
     } finally {
       if (mounted) {
@@ -214,7 +218,7 @@ export default function RegisterScreen() {
           <View style={styles.header}>
             <Image
               source={require('../../assets/images/icon.png')}
-              style={styles.logo} 
+              style={styles.logo}
               resizeMode="contain"
             />
             <DynamicText style={styles.brandTitle}>CallTuneAI</DynamicText>
@@ -307,11 +311,21 @@ export default function RegisterScreen() {
                     setPassword(text);
                     setShowPasswordHints(true);
                   }}
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   onFocus={() => setShowPasswordHints(true)}
                   onBlur={() => setShowPasswordHints(false)}
                   editable={!showSuccessMessage}
                 />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <MaterialIcons
+                    name={showPassword ? 'visibility-off' : 'visibility'}
+                    size={24}
+                    color="#AAAAAA"
+                  />
+                </TouchableOpacity>
               </View>
               {showPasswordHints && (
                 <View style={styles.passwordHints}>
@@ -336,8 +350,8 @@ export default function RegisterScreen() {
               <Text style={styles.buttonText}>
                 {loading ? (
                   registrationStep === 'validating' ? 'Validating...' :
-                  registrationStep === 'creating' ? 'Creating Account...' :
-                  'Account Created!'
+                    registrationStep === 'creating' ? 'Creating Account...' :
+                      'Account Created!'
                 ) : showSuccessMessage ? (
                   'Check Email to Verify'
                 ) : 'Create Account'}
@@ -364,6 +378,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1A2C3E',
+  },
+  eyeIcon: {
+    padding: 8,
   },
   scrollContent: {
     minHeight: '100%',
