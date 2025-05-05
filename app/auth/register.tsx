@@ -24,7 +24,6 @@ export default function RegisterScreen() {
   const [lastName, setLastName] = useState('');
   const [isDevelopment] = useState(__DEV__);
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('+1');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,14 +95,8 @@ export default function RegisterScreen() {
       setRegistrationStep('validating');
       setError(null);
 
-      if (!firstName || !lastName || !email || !password || !phone) {
+      if (!firstName || !lastName || !email || !password) {
         setError('Please fill in all required fields');
-        setLoading(false);
-        return;
-      }
-      
-      if (!validatePhone(phone)) {
-        setError('Please enter a valid phone number (+1XXXXXXXXXX)');
         setLoading(false);
         return;
       }
@@ -129,7 +122,6 @@ export default function RegisterScreen() {
           data: {
             first_name: firstName,
             last_name: lastName,
-            phone: phone
           },
           emailRedirectTo: Platform.select({
             web: 'https://calltuneai.com/auth/verify',
@@ -301,23 +293,6 @@ export default function RegisterScreen() {
                   editable={!showSuccessMessage}
                 />
               </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <View style={styles.inputContainer}>
-                <Phone size={20} color="#AAAAAA" />
-                <TextInput
-                  placeholder="Phone Number"
-                  style={styles.input}
-                  placeholderTextColor="#AAAAAA"
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                  editable={!showSuccessMessage}
-                />
-              </View>
-              <Text style={styles.inputHelper}>Format: +1XXXXXXXXXX</Text>
             </View>
 
             <View style={styles.inputGroup}>

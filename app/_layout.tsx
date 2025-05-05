@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFonts } from 'expo-font';
-import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
+import { Slot, SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
 import { SoundProvider } from '../context/SoundContext';
 import { checkAuth } from '../lib/auth';
 import { StatusBar } from 'expo-status-bar';
@@ -27,7 +27,6 @@ import {
   RobotoSlab_700Bold,
 } from '@expo-google-fonts/roboto-slab';
 
-// Keep the splash screen visible while we load resources
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -36,7 +35,6 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
 
-  // Load all fonts
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
@@ -56,21 +54,19 @@ export default function RootLayout() {
   const handleAuthRouting = useCallback(async () => {
     try {
       const { isAuthenticated } = await checkAuth();
-      const currentRoute = segments[0];
-      
-      console.log('Auth status:', isAuthenticated, 'Current route:', currentRoute);
+      const currentRoute = segments[0] || '';
 
-      // Only redirect if necessary to prevent loops
+      if (__DEV__) console.log('Auth status:', isAuthenticated, 'Current route:', currentRoute);
+
       if (!isAuthenticated && currentRoute !== 'auth') {
-        console.log('Redirecting to register');
+        if (__DEV__) console.log('Redirecting to register');
         router.replace('/auth/register');
       } else if (isAuthenticated && currentRoute === 'auth') {
-        console.log('Redirecting to tabs');
+        if (__DEV__) console.log('Redirecting to tabs');
         router.replace('/(tabs)');
       }
     } catch (error) {
       console.error('Auth check error:', error);
-      // Fallback to register screen if auth check fails
       router.replace('/auth/register');
     } finally {
       setInitialAuthCheckDone(true);
@@ -85,7 +81,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (initialAuthCheckDone && (fontsLoaded || fontError)) {
-      // Small delay to ensure navigation is complete
       const timer = setTimeout(() => {
         setAppIsReady(true);
         SplashScreen.hideAsync().catch(console.warn);
@@ -94,10 +89,21 @@ export default function RootLayout() {
     }
   }, [initialAuthCheckDone, fontsLoaded, fontError]);
 
+  useEffect(() => {
+    if (fontError) {
+      console.error('Font loading error:', fontError);
+    }
+  }, [fontError]);
+
   if (!appIsReady) {
-    return <View style={styles.container} />;
+    return (
+      <SoundProvider>
+        <Slot />
+      </SoundProvider>
+    );
   }
 
+  console.log('Initial auth check done:', appIsReady);
   return (
     <SoundProvider>
       <View style={styles.container}>
@@ -112,5 +118,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1A2C3E',
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
