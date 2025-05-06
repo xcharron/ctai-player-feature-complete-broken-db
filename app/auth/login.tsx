@@ -8,32 +8,20 @@ import {
   Platform,
   Image,
   KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  Keyboard,
-  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { Mail, Lock, ChevronRight, CircleAlert as AlertCircle, Loader } from 'lucide-react-native';
-import DynamicText from '../../components/DynamicText';
+import { Mail, Lock, ChevronRight, CircleAlert as AlertCircle, Loader, Eye, EyeOff } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkingVerification, setCheckingVerification] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetSent, setResetSent] = useState(false);
-
-  const dismissKeyboard = () => {
-    Keyboard.dismiss();
-  };
-
-  const handleCreateAccountPress = () => {
-    dismissKeyboard();
-    router.push('/auth/register');
-  };
 
   const handleLogin = async () => {
     try {
@@ -53,13 +41,12 @@ export default function LoginScreen() {
         }
       });
 
-      console.log('users', users);
       if (getUserError) {
         throw getUserError;
       }
 
       const user = users?.[0];
-      
+
       if (!user) {
         setError('No account found with this email. Please sign up first.');
         return;
@@ -137,127 +124,127 @@ export default function LoginScreen() {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={dismissKeyboard}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? -64 : 0}
-        style={styles.container}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
-          contentInsetAdjustmentBehavior="automatic"
-        >
-          <View style={styles.content}>
-            <View style={styles.header}>
-              <Image
-                source={require('../../assets/images/icon.png')}
-                style={styles.logo}
-                resizeMode="contain"
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Image
+            source={require('../../assets/images/icon.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>
+            Sign in to continue using CallTuneAI
+          </Text>
+        </View>
+
+        {error && (
+          <View style={styles.errorContainer}>
+            <AlertCircle size={20} color="#FF3B30" />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        <View style={styles.form}>
+          <View style={styles.inputGroup}>
+            <View style={styles.inputContainer}>
+              <Mail size={20} color="#AAAAAA" />
+              <TextInput
+                style={[styles.input, { marginRight: 40 }]}
+                placeholder="Email"
+                hitSlop={{ top: 20, bottom: 20, left: 100, right: 1100 }}
+                placeholderTextColor="#AAAAAA"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
               />
-              <DynamicText style={styles.brandTitle}>CallTuneAI</DynamicText>
-              <DynamicText style={styles.brandSubtitle}>Player</DynamicText>
-              <DynamicText style={styles.title}>Welcome Back</DynamicText>
-              <DynamicText style={styles.subtitle}>
-                Sign in to continue using CallTuneAI
-              </DynamicText>
-            </View>
-
-            {error && (
-              <View style={styles.errorContainer}>
-                <AlertCircle size={20} color="#FF3B30" />
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-
-            <View style={styles.form}>
-              <View style={styles.inputGroup}>
-                <View style={styles.inputContainer}>
-                  <Mail size={20} color="#AAAAAA" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    placeholderTextColor="#AAAAAA"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <View style={styles.inputContainer}>
-                  <Lock size={20} color="#AAAAAA" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    placeholderTextColor="#AAAAAA"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                  />
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={styles.forgotPasswordButton}
-                onPress={handleForgotPassword}
-                disabled={loading || !email}
-              >
-                <Text style={styles.forgotPasswordText}>
-                  Forgot Password?
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleLogin}
-                disabled={loading}
-              >
-                {loading ? (
-                  <View style={styles.loadingContainer}>
-                    <Loader size={24} color="#FFFFFF" />
-                    <Text style={styles.buttonText}>
-                      {checkingVerification ? 'Checking Verification...' : 'Signing In...'}
-                    </Text>
-                  </View>
-                ) : (
-                  <>
-                    <Text style={styles.buttonText}>Sign In</Text>
-                    <ChevronRight size={20} color="#FFFFFF" />
-                  </>
-                )}
-              </TouchableOpacity>
-
-              {checkingVerification && (
-                <TouchableOpacity
-                  style={styles.resendButton}
-                  onPress={handleResendVerification}
-                  disabled={loading}
-                >
-                  <Text style={styles.resendButtonText}>
-                    Resend Verification Email
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={handleCreateAccountPress}
-              >
-                <Text style={styles.linkText}>
-                  Don't have an account? Create one
-                </Text>
-              </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+
+          <View style={styles.inputGroup}>
+            <View style={styles.inputContainer}>
+              <Lock size={20} color="#AAAAAA" />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  hitSlop={{ top: 20, bottom: 20, left: 100, right: 1100 }}
+                  style={[styles.input, { marginRight: 40 }]}
+                  placeholder="Password"
+                  placeholderTextColor="#AAAAAA"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} color="#AAAAAA" />
+                  ) : (
+                    <Eye size={20} color="#AAAAAA" />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.forgotPasswordButton}
+            onPress={handleForgotPassword}
+            disabled={loading || !email}
+          >
+            <Text style={styles.forgotPasswordText}>
+              Forgot Password?
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <Loader size={24} color="#FFFFFF" />
+                <Text style={styles.buttonText}>
+                  {checkingVerification ? 'Checking Verification...' : 'Signing In...'}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.buttonText}>Sign In</Text>
+                <ChevronRight size={20} color="#FFFFFF" />
+              </>
+            )}
+          </TouchableOpacity>
+
+          {checkingVerification && (
+            <TouchableOpacity
+              style={styles.resendButton}
+              onPress={handleResendVerification}
+              disabled={loading}
+            >
+              <Text style={styles.resendButtonText}>
+                Resend Verification Email
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => router.push('/auth/register')}
+          >
+            <Text style={styles.linkText}>
+              Don't have an account? Create one
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -266,35 +253,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1A2C3E',
   },
-  scrollContent: {
-    minHeight: '100%',
-  },
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: Platform.select({ ios: 10, android: 10, default: 10 }),
-    paddingBottom: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 48,
   },
   logo: {
-    width: 160,
-    height: 160,
-    marginBottom: 4,
-  },
-  brandTitle: {
-    fontFamily: 'Orbitron-Bold',
-    color: '#FFFFFF',
-    fontSize: 32,
-    marginBottom: 4,
-  },
-  brandSubtitle: {
-    fontFamily: 'Orbitron-Bold',
-    color: '#0496FF',
-    fontSize: 24,
-    marginBottom: 24,
+    width: 120,
+    height: 120,
+    marginBottom: 32,
   },
   title: {
     fontSize: 32,
@@ -339,11 +310,19 @@ const styles = StyleSheet.create({
     height: 56,
   },
   input: {
-    flex: 1,
     marginLeft: 12,
     color: '#FFFFFF',
     fontFamily: 'Inter-Regular',
     fontSize: 16,
+  },
+  passwordContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 8,
   },
   button: {
     flexDirection: 'row',

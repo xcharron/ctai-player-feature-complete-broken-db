@@ -43,7 +43,8 @@
         "NSDocumentsFolderUsageDescription": "CallTuneAI needs access to your documents folder to store predator calls.",
         "ITSAppUsesNonExemptEncryption": false,
         "UIRequiresFullScreen": true
-      }
+      },
+      "appleTeamId": "4WS2DF8MLB"
     },
     "android": {
       "package": "com.calltuneai.player",
@@ -78,7 +79,8 @@
       ]
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true
