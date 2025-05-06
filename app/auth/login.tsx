@@ -46,7 +46,7 @@ export default function LoginScreen() {
       }
 
       const user = users?.[0];
-      
+
       if (!user) {
         setError('No account found with this email. Please sign up first.');
         return;
@@ -155,6 +155,7 @@ export default function LoginScreen() {
               <TextInput
                 style={[styles.input, { marginRight: 40 }]}
                 placeholder="Email"
+                hitSlop={{ top: 20, bottom: 20, left: 100, right: 1100 }}
                 placeholderTextColor="#AAAAAA"
                 value={email}
                 onChangeText={setEmail}
@@ -169,6 +170,7 @@ export default function LoginScreen() {
               <Lock size={20} color="#AAAAAA" />
               <View style={styles.passwordContainer}>
                 <TextInput
+                  hitSlop={{ top: 20, bottom: 20, left: 100, right: 1100 }}
                   style={[styles.input, { marginRight: 40 }]}
                   placeholder="Password"
                   placeholderTextColor="#AAAAAA"
