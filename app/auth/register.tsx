@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,18 @@ import {
   Image,
   KeyboardAvoidingView,
   Linking,
-  TouchableWithoutFeedback,
-  Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { Mail, Lock, User, Phone, ChevronRight, CircleAlert as AlertCircle, CircleCheck as CheckCircle2 } from 'lucide-react-native';
+import { Mail, Lock, User, ChevronRight, CircleAlert as AlertCircle, CircleCheck as CheckCircle2, Eye, EyeOff } from 'lucide-react-native';
 import DynamicText from '../../components/DynamicText';
+
+const BRAND_COLORS = {
+  deepBlue: '#2C3E50',
+  accentBlue: '#0496FF',
+  brightBlue: '#00A6FF',
+  lightGray: '#D3D3D3',
+};
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -25,6 +30,7 @@ export default function RegisterScreen() {
   const [isDevelopment] = useState(__DEV__);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPasswordHints, setShowPasswordHints] = useState(false);
@@ -33,34 +39,17 @@ export default function RegisterScreen() {
   const [rateLimitTimeout, setRateLimitTimeout] = useState<number | null>(null);
   const [rateLimitRemaining, setRateLimitRemaining] = useState(5);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  const validatePhone = (phone: string) => {
-    const phoneRegex = /^\+[1-9]\d{1,14}$/;
-    return phoneRegex.test(phone);
-  };
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
     const disposableEmailRegex = /@(tempmail\.com|throwawaymail\.com|mailinator\.com|guerrillamail\.com|sharklasers\.com|grr\.la|guerrillamail\.net|spam4\.me|byom\.de|dispostable\.com|yopmail\.com|10minutemail\.com)$/i;
     return emailRegex.test(email) && !disposableEmailRegex.test(email);
-  };
-
+  }
   const validatePassword = (password: string) => {
     return password.length >= 6;
   };
 
-  const dismissKeyboard = () => {
-    Keyboard.dismiss();
-  };
-
   const handleOpenEmail = () => {
-    dismissKeyboard();
     if (Platform.OS === 'web') {
       window.open('https://outlook.office.com', '_blank');
     } else {
@@ -68,14 +57,7 @@ export default function RegisterScreen() {
     }
   };
 
-  const handleSignInPress = () => {
-    dismissKeyboard();
-    router.push('/auth/login');
-  };
-
   const handleRegister = async () => {
-    if (!mounted) return;
-    
     try {
       if (!isDevelopment) {
         if (rateLimitTimeout && Date.now() < rateLimitTimeout) {
@@ -100,7 +82,7 @@ export default function RegisterScreen() {
         setLoading(false);
         return;
       }
-
+      
       if (!validateEmail(email)) {
         setError('Please enter a valid email address. Disposable email services are not allowed.');
         setLoading(false);
@@ -121,14 +103,9 @@ export default function RegisterScreen() {
         options: {
           data: {
             first_name: firstName,
-            last_name: lastName,
+            last_name: lastName
           },
-          emailRedirectTo: Platform.select({
-            web: 'https://calltuneai.com/auth/verify',
-            ios: 'calltuneai://auth/verify',
-            android: 'calltuneai://auth/verify',
-            default: 'https://calltuneai.com/auth/verify'
-          })
+          emailRedirectTo: 'https://calltuneai.com/auth/verify'
         }
       });
 
@@ -151,10 +128,9 @@ export default function RegisterScreen() {
         setShowSuccessMessage(true);
         setError(null);
         
+        // Auto-redirect after 3 seconds
         setTimeout(() => {
-          if (mounted) {
-            router.replace('/auth/login');
-          }
+          router.replace('/auth/login');
         }, 3000);
       }
     } catch (err: any) {
@@ -163,7 +139,7 @@ export default function RegisterScreen() {
       
       if (err.message?.includes('User already registered')) {
         errorMessage = 'This email is already registered. Please sign in instead.';
-      } else if (err.message?.includes('Password should be at least 6 characters')) {
+      } else if (err.message?.includes('Password should be')) {
         errorMessage = 'Password must be at least 6 characters long';
       } else if (err.message?.includes('hour.error.email.rate')) {
         if (!isDevelopment) {
@@ -186,177 +162,174 @@ export default function RegisterScreen() {
       
       setError(errorMessage);
     } finally {
-      if (mounted) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
-  if (!mounted) {
-    return null;
-  }
-
   return (
-    <TouchableWithoutFeedback onPress={dismissKeyboard}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? -64 : 0}
-        style={styles.container}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
-          contentInsetAdjustmentBehavior="automatic"
-        >
-          <View style={styles.header}>
-            <Image
-              source={require('../../assets/images/icon.png')}
-              style={styles.logo} 
-              resizeMode="contain"
-            />
-            <DynamicText style={styles.brandTitle}>CallTuneAI</DynamicText>
-            <DynamicText style={styles.brandSubtitle}>Player</DynamicText>
-            <DynamicText style={styles.title}>Create Account</DynamicText>
-            <DynamicText style={styles.subtitle}>Join us to start your 30-day trial</DynamicText>
+        <View style={styles.header}>
+          <Image
+            source={require('../../assets/images/icon.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <DynamicText style={styles.brandTitle}>CallTuneAI</DynamicText>
+          <DynamicText style={styles.brandSubtitle}>Player</DynamicText>
+          <DynamicText style={styles.title}>Create Account</DynamicText>
+          <DynamicText style={styles.subtitle}>Use it free for a limited time</DynamicText>
+        </View>
+
+        {error && (
+          <View style={styles.errorContainer}>
+            <AlertCircle size={20} color="#FF3B30" />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {showSuccessMessage && (
+          <View style={styles.successContainer}>
+            <CheckCircle2 size={24} color="#4CD964" />
+            <View style={styles.successTextContainer}>
+              <Text style={styles.successTitle}>Account Created Successfully!</Text>
+              <Text style={styles.successText}>
+                Please check your email to verify your account.
+              </Text>
+              <TouchableOpacity
+                style={styles.checkEmailButton}
+                onPress={handleOpenEmail}
+              >
+                <Mail size={20} color="#FFFFFF" />
+                <Text style={styles.checkEmailText}>Open Email App</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.form}>
+          <View style={styles.inputGroup}>
+            <View style={styles.inputRow}>
+              <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
+                <User size={20} color="#AAAAAA" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="First Name"
+                  placeholderTextColor="#AAAAAA"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  autoCapitalize="words"
+                  editable={!showSuccessMessage}
+                />
+              </View>
+              <View style={[styles.inputContainer, { flex: 1 }]}>
+                <User size={20} color="#AAAAAA" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Last Name"
+                  placeholderTextColor="#AAAAAA"
+                  value={lastName}
+                  onChangeText={setLastName}
+                  autoCapitalize="words"
+                  editable={!showSuccessMessage}
+                />
+              </View>
+            </View>
           </View>
 
-          {error && (
-            <View style={styles.errorContainer}>
-              <AlertCircle size={20} color="#FF3B30" />
-              <Text style={styles.errorText}>{error}</Text>
+          <View style={styles.inputGroup}>
+            <View style={styles.inputContainer}>
+              <Mail size={20} color="#AAAAAA" />
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="#AAAAAA"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                editable={!showSuccessMessage}
+              />
             </View>
-          )}
+          </View>
 
-          {showSuccessMessage && (
-            <View style={styles.successContainer}>
-              <CheckCircle2 size={24} color="#4CD964" />
-              <View style={styles.successTextContainer}>
-                <Text style={styles.successTitle}>Account Created Successfully!</Text>
-                <Text style={styles.successText}>
-                  Please check your email to verify your account.
+          <View style={styles.inputGroup}>
+            <View style={styles.inputContainer}>
+              <Lock size={20} color="#AAAAAA" />
+              <TextInput
+                style={[styles.input, { marginRight: 40 }]}
+                placeholder="Password"
+                placeholderTextColor="#AAAAAA"
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  setShowPasswordHints(true);
+                }}
+                secureTextEntry={!showPassword}
+                onFocus={() => setShowPasswordHints(true)}
+                onBlur={() => setShowPasswordHints(false)}
+                editable={!showSuccessMessage}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff size={20} color="#AAAAAA" />
+                ) : (
+                  <Eye size={20} color="#AAAAAA" />
+                )}
+              </TouchableOpacity>
+            </View>
+            {showPasswordHints && (
+              <View style={styles.passwordHints}>
+                <Text style={[
+                  styles.passwordHint,
+                  password.length >= 6 ? styles.passwordHintValid : styles.passwordHintInvalid
+                ]}>
+                  • At least 6 characters
                 </Text>
-                <TouchableOpacity
-                  style={styles.checkEmailButton}
-                  onPress={handleOpenEmail}
-                >
-                  <Mail size={20} color="#FFFFFF" />
-                  <Text style={styles.checkEmailText}>Open Email App</Text>
-                </TouchableOpacity>
               </View>
-            </View>
-          )}
-
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <View style={styles.inputRow}>
-                <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
-                  <User size={20} color="#AAAAAA" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="First Name"
-                    placeholderTextColor="#AAAAAA"
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    autoCapitalize="words"
-                    editable={!showSuccessMessage}
-                  />
-                </View>
-                <View style={[styles.inputContainer, { flex: 1 }]}>
-                  <User size={20} color="#AAAAAA" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Last Name"
-                    placeholderTextColor="#AAAAAA"
-                    value={lastName}
-                    onChangeText={setLastName}
-                    autoCapitalize="words"
-                    editable={!showSuccessMessage}
-                  />
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <View style={styles.inputContainer}>
-                <Mail size={20} color="#AAAAAA" />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  placeholderTextColor="#AAAAAA"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  editable={!showSuccessMessage}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <View style={styles.inputContainer}>
-                <Lock size={20} color="#AAAAAA" />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor="#AAAAAA"
-                  value={password}
-                  onChangeText={(text) => {
-                    setPassword(text);
-                    setShowPasswordHints(true);
-                  }}
-                  secureTextEntry
-                  onFocus={() => setShowPasswordHints(true)}
-                  onBlur={() => setShowPasswordHints(false)}
-                  editable={!showSuccessMessage}
-                />
-              </View>
-              {showPasswordHints && (
-                <View style={styles.passwordHints}>
-                  <Text style={[
-                    styles.passwordHint,
-                    password.length >= 6 ? styles.passwordHintValid : styles.passwordHintInvalid
-                  ]}>
-                    • At least 6 characters
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                (loading || showSuccessMessage) && styles.buttonDisabled
-              ]}
-              onPress={handleRegister}
-              disabled={loading || isSubmitted || showSuccessMessage}
-            >
-              <Text style={styles.buttonText}>
-                {loading ? (
-                  registrationStep === 'validating' ? 'Validating...' :
-                  registrationStep === 'creating' ? 'Creating Account...' :
-                  'Account Created!'
-                ) : showSuccessMessage ? (
-                  'Check Email to Verify'
-                ) : 'Create Account'}
-              </Text>
-              {!loading && !showSuccessMessage && <ChevronRight size={20} color="#FFFFFF" />}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkButton}
-              onPress={handleSignInPress}
-            >
-              <Text style={styles.linkText}>
-                Already have an account? Sign in
-              </Text>
-            </TouchableOpacity>
+            )}
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              (loading || showSuccessMessage) && styles.buttonDisabled
+            ]}
+            onPress={handleRegister}
+            disabled={loading || isSubmitted || showSuccessMessage}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? (
+                registrationStep === 'validating' ? 'Validating...' :
+                registrationStep === 'creating' ? 'Creating Account...' :
+                'Account Created!'
+              ) : showSuccessMessage ? (
+                'Check Email to Verify'
+              ) : 'Create Account'}
+            </Text>
+            {!loading && !showSuccessMessage && <ChevronRight size={20} color="#FFFFFF" />}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => router.push('/auth/login')}
+          >
+            <Text style={styles.linkText}>
+              Already have an account? Sign in
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -366,37 +339,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A2C3E',
   },
   scrollContent: {
-    minHeight: '100%',
+    flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: Platform.select({ ios: 10, android: 10, default: 10 }),
-    paddingBottom: 20,
+    paddingTop: Platform.OS === 'ios' ? 48 : 32,
+    paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
+    paddingTop: 10,
   },
   logo: {
     width: 160,
     height: 160,
-    marginBottom: 0,
+    marginBottom: 8,
   },
   brandTitle: {
     fontFamily: 'Orbitron-Bold',
     color: '#FFFFFF',
-    fontSize: 28,
+    fontSize: 32,
     marginBottom: 4,
-  },
-  brandSubtitle: {
-    fontFamily: 'Orbitron-Bold',
-    color: '#0496FF',
-    fontSize: 16,
-    marginBottom: 24,
   },
   title: {
     fontFamily: 'Orbitron-Bold',
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 20,
+    marginTop: 48,
     marginBottom: 8,
+  },
+  brandSubtitle: {
+    fontFamily: 'Orbitron-Medium',
+    color: BRAND_COLORS.brightBlue,
+    fontSize: 24,
+    marginBottom: 16,
     textAlign: 'center',
   },
   subtitle: {
@@ -483,6 +458,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: 'Inter-Regular',
     fontSize: 16,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+    padding: 8,
   },
   button: {
     flexDirection: 'row',
