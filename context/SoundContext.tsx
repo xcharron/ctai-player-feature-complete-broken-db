@@ -13,7 +13,7 @@ interface SoundContextType {
   playbackDuration: number;
   highQualityEnabled: boolean;
   setHighQualityEnabled: (enabled: boolean) => void;
-  loadSound: (sound: Sound) => Promise<void>;
+  loadAndPlaySound: (sound: Sound) => Promise<void>;
   playSound: () => Promise<void>;
   pauseSound: () => Promise<void>;
   stopSound: () => Promise<void>;
@@ -28,17 +28,11 @@ interface SoundContextType {
 const SoundContext = createContext<SoundContextType | undefined>(undefined);
 
 const getDirectoryPath = () => {
-  if (Platform.OS === 'web') {
-    return '';
-  }
-  return `${FileSystem.documentDirectory}sounds/`;
+  return Platform.OS === 'web' ? '' : `${FileSystem.documentDirectory}sounds/`;
 };
 
 const getDataFilePath = () => {
-  if (Platform.OS === 'web') {
-    return '';
-  }
-  return `${FileSystem.documentDirectory}sounds.json`;
+  return Platform.OS === 'web' ? '' : `${FileSystem.documentDirectory}sounds.json`;
 };
 
 export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -50,59 +44,39 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [playbackDuration, setPlaybackDuration] = useState(0);
   const [highQualityEnabled, setHighQualityEnabled] = useState(true);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Initialize audio and load saved sounds
   useEffect(() => {
-    const initializeStorage = async () => {
-      try {
-        // Initialize audio with platform-specific settings
-        const audioConfig = Platform.select({
-          ios: {
-            allowsRecordingIOS: false,
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: true,
-          },
-          android: {
-            staysActiveInBackground: true,
-            shouldDuckAndroid: false,
-          },
-          default: {
-            staysActiveInBackground: true,
-          }
-        });
+    const initialize = async () => {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: false,
+      });
 
-        await Audio.setAudioModeAsync(audioConfig);
-
-        if (Platform.OS !== 'web') {
-          const SOUNDS_DIRECTORY = getDirectoryPath();
-          const SOUNDS_DATA_FILE = getDataFilePath();
-          
-          const dirInfo = await FileSystem.getInfoAsync(SOUNDS_DIRECTORY);
-          if (!dirInfo.exists) {
-            await FileSystem.makeDirectoryAsync(SOUNDS_DIRECTORY, { intermediates: true });
-          }
-
-          const fileInfo = await FileSystem.getInfoAsync(SOUNDS_DATA_FILE);
-          if (fileInfo.exists) {
-            const data = await FileSystem.readAsStringAsync(SOUNDS_DATA_FILE);
-            setSounds(JSON.parse(data));
-          } else {
-            await FileSystem.writeAsStringAsync(SOUNDS_DATA_FILE, JSON.stringify([]));
-          }
-        } else {
-          const storedSounds = localStorage.getItem('sounds');
-          if (storedSounds) {
-            setSounds(JSON.parse(storedSounds));
-          }
+      if (Platform.OS !== 'web') {
+        const dirInfo = await FileSystem.getInfoAsync(getDirectoryPath());
+        if (!dirInfo.exists) {
+          await FileSystem.makeDirectoryAsync(getDirectoryPath(), { intermediates: true });
         }
-      } catch (error) {
-        console.error('Error initializing storage:', error);
+
+        const fileInfo = await FileSystem.getInfoAsync(getDataFilePath());
+        if (fileInfo.exists) {
+          const data = await FileSystem.readAsStringAsync(getDataFilePath());
+          setSounds(JSON.parse(data));
+        }
+      } else {
+        const storedSounds = localStorage.getItem('sounds');
+        if (storedSounds) setSounds(JSON.parse(storedSounds));
       }
+
+      setIsInitialized(true);
     };
 
-    initializeStorage();
+    initialize();
 
-    // Cleanup function
     return () => {
       if (soundObject) {
         soundObject.unloadAsync();
@@ -110,76 +84,55 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
+  // Save sounds when they change
   useEffect(() => {
-    const saveSoundsData = async () => {
-      try {
-        if (Platform.OS !== 'web') {
-          const SOUNDS_DATA_FILE = getDataFilePath();
-          await FileSystem.writeAsStringAsync(SOUNDS_DATA_FILE, JSON.stringify(sounds));
-        } else {
-          localStorage.setItem('sounds', JSON.stringify(sounds));
-        }
-      } catch (error) {
-        console.error('Error saving sounds data:', error);
+    if (!isInitialized) return;
+
+    const saveSounds = async () => {
+      if (Platform.OS !== 'web') {
+        await FileSystem.writeAsStringAsync(getDataFilePath(), JSON.stringify(sounds));
+      } else {
+        localStorage.setItem('sounds', JSON.stringify(sounds));
       }
     };
 
-    if (sounds.length > 0) {
-      saveSoundsData();
-    }
-  }, [sounds]);
+    saveSounds();
+  }, [sounds, isInitialized]);
 
-  const updatePlaybackStatus = async () => {
-    if (soundObject) {
+  // Playback status updates
+  useEffect(() => {
+    if (!soundObject) return;
+
+    const interval = setInterval(async () => {
       const status = await soundObject.getStatusAsync();
       if (status.isLoaded) {
         setPlaybackPosition(status.positionMillis / 1000);
         setPlaybackDuration(status.durationMillis ? status.durationMillis / 1000 : 0);
         setIsPlaying(status.isPlaying);
-        setIsLooping(status.isLooping);
       }
-    }
-  };
+    }, 500);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    
-    if (isPlaying) {
-      interval = setInterval(updatePlaybackStatus, 500);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isPlaying, soundObject]);
+    return () => clearInterval(interval);
+  }, [soundObject]);
 
-  const loadSound = async (sound: Sound) => {
+  const loadAndPlaySound = async (sound: Sound) => {
     try {
-      setIsLoaded(false);
-      
-      // Unload any existing sound
+      // Unload current sound if exists
       if (soundObject) {
         await soundObject.unloadAsync();
-        setSoundObject(null);
       }
 
-      // Create and load the new sound
-      const { sound: newSoundObject } = await Audio.Sound.createAsync(
+      // Create and load new sound
+      const { sound: newSound } = await Audio.Sound.createAsync(
         { uri: sound.uri },
         {
-          shouldCorrectPitch: highQualityEnabled,
-          progressUpdateIntervalMillis: highQualityEnabled ? 50 : 100,
-          positionMillis: 0,
-          shouldPlay: false,
-          volume: 1.0,
+          shouldPlay: true,
           isLooping: true,
+          volume: 1.0,
+          shouldCorrectPitch: highQualityEnabled,
         },
         (status) => {
           if (status.isLoaded) {
-            setPlaybackPosition(status.positionMillis / 1000);
-            setPlaybackDuration(status.durationMillis ? status.durationMillis / 1000 : 0);
-            setIsPlaying(status.isPlaying);
-            
             if (status.didJustFinish && !status.isLooping) {
               setIsPlaying(false);
               setPlaybackPosition(0);
@@ -188,43 +141,27 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       );
 
-      // Wait for the sound to be fully loaded
-      await newSoundObject.setStatusAsync({
-        shouldPlay: false,
-        positionMillis: 0,
-      });
-
-      setSoundObject(newSoundObject);
+      setSoundObject(newSound);
       setCurrentSound(sound);
-      setIsPlaying(false);
-      setPlaybackPosition(0);
-      setIsLooping(true);
-      setIsLoaded(true);
-      
-      await updatePlaybackStatus();
+      setIsPlaying(true);
     } catch (error) {
-      console.error('Error loading sound:', error);
-      setIsLoaded(false);
+      console.error('Error loading and playing sound:', error);
       throw error;
     }
   };
 
   const playSound = async () => {
-    if (!soundObject || !isLoaded) return;
-    
+    if (!soundObject) return;
     try {
-      await soundObject.setIsLoopingAsync(true);
       await soundObject.playAsync();
       setIsPlaying(true);
-      setIsLooping(true);
     } catch (error) {
       console.error('Error playing sound:', error);
     }
   };
 
   const pauseSound = async () => {
-    if (!soundObject || !isLoaded) return;
-    
+    if (!soundObject) return;
     try {
       await soundObject.pauseAsync();
       setIsPlaying(false);
@@ -362,7 +299,7 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         playbackDuration,
         highQualityEnabled,
         setHighQualityEnabled,
-        loadSound,
+        loadAndPlaySound,
         playSound,
         pauseSound,
         stopSound,
@@ -381,12 +318,8 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export const useSounds = () => {
   const context = useContext(SoundContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useSounds must be used within a SoundProvider');
   }
   return context;
 };
-
-export { SoundProvider }
-
-export { useSounds }
