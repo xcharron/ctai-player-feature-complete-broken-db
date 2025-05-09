@@ -4,7 +4,6 @@ import { Play, Pause, Heart, MoveVertical as MoreVertical, Clock, Tag } from 'lu
 import { useSounds } from '../context/SoundContext';
 import { Sound } from '../types/sound';
 
-// CallTuneAI brand colors
 const BRAND_COLORS = {
   deepBlue: '#2C3E50',
   accentBlue: '#0496FF',
@@ -18,20 +17,26 @@ interface SoundCardProps {
 }
 
 const SoundCard: React.FC<SoundCardProps> = ({ sound, onOptionsPress }) => {
-  const { loadSound, playSound, currentSound, isPlaying, pauseSound, toggleFavorite, playbackPosition } = useSounds();
+  const { 
+    loadAndPlaySound, 
+    currentSound, 
+    isPlaying, 
+    pauseSound, 
+    toggleFavorite, 
+    playbackPosition 
+  } = useSounds();
 
   const isCurrentlyPlaying = currentSound?.id === sound.id && isPlaying;
 
   const handlePlayPress = async () => {
-    if (currentSound?.id === sound.id) {
-      if (isPlaying) {
+    try {
+      if (isCurrentlyPlaying) {
         await pauseSound();
       } else {
-        await playSound();
+        await loadAndPlaySound(sound);
       }
-    } else {
-      await loadSound(sound);
-      await playSound();
+    } catch (error) {
+      console.error('Playback error:', error);
     }
   };
 
@@ -46,7 +51,6 @@ const SoundCard: React.FC<SoundCardProps> = ({ sound, onOptionsPress }) => {
     return date.toLocaleDateString();
   };
 
-  // Format the current playback time if this sound is playing
   const playbackTime = isCurrentlyPlaying ? formatDuration(playbackPosition) : null;
 
   return (
@@ -91,7 +95,7 @@ const SoundCard: React.FC<SoundCardProps> = ({ sound, onOptionsPress }) => {
         <TouchableOpacity 
           style={styles.iconButton} 
           onPress={(e) => {
-            e.stopPropagation(); // Prevent triggering the card's onPress
+            e.stopPropagation();
             toggleFavorite(sound.id);
           }}
         >
@@ -104,7 +108,7 @@ const SoundCard: React.FC<SoundCardProps> = ({ sound, onOptionsPress }) => {
         <TouchableOpacity 
           style={styles.iconButton} 
           onPress={(e) => {
-            e.stopPropagation(); // Prevent triggering the card's onPress
+            e.stopPropagation();
             onOptionsPress(sound);
           }}
         >

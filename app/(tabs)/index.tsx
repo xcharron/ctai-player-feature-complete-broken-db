@@ -28,13 +28,13 @@ export default function LibraryScreen() {
 
   const filteredSounds = sounds.filter(sound => {
     const matchesSearch = sound.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         sound.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         sound.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+      sound.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sound.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+
     const matchesCategory = selectedCategory ? sound.category === selectedCategory : true;
-    
+
     const matchesFavorites = showFavoritesOnly ? sound.favorite : true;
-    
+
     return matchesSearch && matchesCategory && matchesFavorites;
   });
 
@@ -48,7 +48,7 @@ export default function LibraryScreen() {
 
   const handleDeleteSound = () => {
     if (!selectedSound) return;
-    
+
     if (Platform.OS === 'web') {
       if (confirm(`Are you sure you want to delete "${selectedSound.name}"?`)) {
         deleteSound(selectedSound.id);
@@ -63,8 +63,8 @@ export default function LibraryScreen() {
             text: "Cancel",
             style: "cancel"
           },
-          { 
-            text: "Delete", 
+          {
+            text: "Delete",
             onPress: () => {
               deleteSound(selectedSound.id);
               setOptionsModalVisible(false);
@@ -104,7 +104,7 @@ export default function LibraryScreen() {
           selectedCategory === null && !showFavoritesOnly && styles.selectedCategoryButtonText
         ]}>All</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
         style={[
           styles.categoryButton,
@@ -120,7 +120,7 @@ export default function LibraryScreen() {
           showFavoritesOnly && styles.selectedCategoryButtonText
         ]}>Favorites</Text>
       </TouchableOpacity>
-      
+
       {categories.map(category => (
         <TouchableOpacity
           key={category}
@@ -146,8 +146,8 @@ export default function LibraryScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Image 
-            source={require('../../assets/images/icon.png')} 
+          <Image
+            source={require('../../assets/images/icon.png')}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -157,7 +157,7 @@ export default function LibraryScreen() {
           </View>
         </View>
       </View>
-      
+
       <View style={styles.searchContainer}>
         <Search size={20} color={BRAND_COLORS.lightGray} style={styles.searchIcon} />
         <TextInput
@@ -173,20 +173,20 @@ export default function LibraryScreen() {
           </TouchableOpacity>
         )}
       </View>
-      
+
       {renderCategoryFilter()}
-      
+
       {filteredSounds.length === 0 ? (
-        <EmptyState 
-          type={sounds.length === 0 ? 'library' : (showFavoritesOnly ? 'favorites' : 'search')} 
+        <EmptyState
+          type={sounds.length === 0 ? 'library' : (showFavoritesOnly ? 'favorites' : 'search')}
         />
       ) : (
         <FlatList
           data={filteredSounds}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <SoundCard 
-              sound={item} 
+            <SoundCard
+              sound={item}
               onOptionsPress={handleOptionsPress}
             />
           )}
@@ -194,35 +194,35 @@ export default function LibraryScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
-      
+
       <Modal
         visible={optionsModalVisible}
         transparent={true}
         animationType="slide"
         onRequestClose={() => setOptionsModalVisible(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setOptionsModalVisible(false)}
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHandle} />
-            
+
             {selectedSound && (
               <Text style={styles.modalTitle}>{selectedSound.name}</Text>
             )}
-            
+
             <TouchableOpacity style={styles.modalOption} onPress={handleEditSound}>
               <Edit size={24} color="#FFFFFF" />
               <Text style={styles.modalOptionText}>Edit Sound Details</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.modalOption} onPress={handleShareSound}>
               <Share size={24} color="#FFFFFF" />
               <Text style={styles.modalOptionText}>Share Sound</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.modalOption} onPress={handleDeleteSound}>
               <Trash2 size={24} color="#FF3B30" />
               <Text style={[styles.modalOptionText, { color: '#FF3B30' }]}>Delete Sound</Text>
