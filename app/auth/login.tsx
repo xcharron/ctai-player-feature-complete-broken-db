@@ -34,7 +34,6 @@ export default function LoginScreen() {
         return;
       }
 
-      // First check if the user exists and is verified
       const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers({
         filters: {
           email: email.toLowerCase()
@@ -99,28 +98,7 @@ export default function LoginScreen() {
   };
 
   const handleForgotPassword = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      if (!email) {
-        setError('Please enter your email address');
-        return;
-      }
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://calltuneai.com/auth/reset-password',
-      });
-
-      if (error) throw error;
-
-      setResetSent(true);
-      setError('Password reset email sent. Please check your inbox.');
-    } catch (err: any) {
-      setError(err.message || 'Failed to send reset email');
-    } finally {
-      setLoading(false);
-    }
+    router.push('/auth/forgot-password');
   };
 
   return (
@@ -195,7 +173,6 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={styles.forgotPasswordButton}
             onPress={handleForgotPassword}
-            disabled={loading || !email}
           >
             <Text style={styles.forgotPasswordText}>
               Forgot Password?

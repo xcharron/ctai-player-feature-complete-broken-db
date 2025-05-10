@@ -10,6 +10,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Linking,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -42,21 +43,28 @@ export default function RegisterScreen() {
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
-    const disposableEmailRegex = /@(tempmail\.com|throwawaymail\.com|mailinator\.com|guerrillamail\.com|sharklasers\.com|grr\.la|guerrillamail\.net|spam4\.me|byom\.de|dispostable\.com|yopmail\.com|10minutemail\.com)$/i;
+    const disposableEmailRegex = /@(tempmail.com|throwawaymail.com|mailinator.com|guerrillamail.com|sharklasers.com|grr.la|guerrillamail.net|spam4.me|byom.de|dispostable.com|yopmail.com|10minutemail.com)$/i;
     return emailRegex.test(email) && !disposableEmailRegex.test(email);
   }
+
   const validatePassword = (password: string) => {
     return password.length >= 6;
   };
 
-  const handleOpenEmail = () => {
+  const handleOpenEmail = async () => {
     if (Platform.OS === 'web') {
-      window.open('https://outlook.office.com', '_blank');
-    } else {
-      Linking.openURL('message://');
+      window.open('https://mail.google.com', '_blank');
+      return;
     }
+  
+    Linking.openURL('mailto:').catch(err => {
+      console.error('Failed to open email app:', err);
+      Alert.alert(
+        'Error',
+        'Could not open email app. Please check your email manually.'
+      );
+    });
   };
-
   const handleRegister = async () => {
     try {
       if (!isDevelopment) {
@@ -127,11 +135,6 @@ export default function RegisterScreen() {
         setIsSubmitted(true);
         setShowSuccessMessage(true);
         setError(null);
-        
-        // Auto-redirect after 3 seconds
-        setTimeout(() => {
-          router.replace('/auth/login');
-        }, 3000);
       }
     } catch (err: any) {
       console.error('Registration error:', err);
@@ -313,7 +316,7 @@ export default function RegisterScreen() {
                 registrationStep === 'creating' ? 'Creating Account...' :
                 'Account Created!'
               ) : showSuccessMessage ? (
-                'Check Email to Verify'
+                'Check your Email to Verify'
               ) : 'Create Account'}
             </Text>
             {!loading && !showSuccessMessage && <ChevronRight size={20} color="#FFFFFF" />}
